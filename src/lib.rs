@@ -591,11 +591,18 @@ impl Context {
         let theme = &self.theme_set.themes["InspiredGitHub"];
         let start = Instant::now();
 
-        let syntax = self.syntax_set.find_syntax_by_token(&code.lang);
+        let mut lang = &code.lang;
+        if lang.is_empty() {
+            if let Some(default) = &self.default_lang {
+                lang = default;
+            } else {
+                return format!("<pre><code>{}</code></pre>", html_encode(&code.code));
+            }
+        }
+        let syntax = self.syntax_set.find_syntax_by_token(lang);
         let syntax = match syntax {
             Some(t) => t,
             None => {
-                println!("No syntax found for {}", code.lang);
                 return format!("<pre><code>{}</code></pre>", html_encode(&code.code));
             }
         };
