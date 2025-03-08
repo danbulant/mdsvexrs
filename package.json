@@ -1,9 +1,0 @@
-{
-    "name": "markdown",
-    "scripts": {
-        "build": "cargo build --release"
-    },
-    "dependencies": {
-        "highlighter": "workspace:*"
-    }
-}

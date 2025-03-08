@@ -561,7 +561,7 @@ struct HighlightRequest {
 
 pub struct MdsvexrsOptions {
     pub layout: String,
-    pub path: String,
+    // pub path: String,
 }
 
 impl Context {

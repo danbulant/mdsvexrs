@@ -7,15 +7,18 @@ use mdsvexrs::Context;
 struct Args {
     #[arg(short, long)]
     layout: String,
-    #[arg(short, long)]
-    path: String,
+    // #[arg(short, long)]
+    // path: String,
     #[arg(long)]
-    timings: bool
+    timings: bool,
 }
 
 fn main() {
     let args = Args::parse();
-    let mut ctx = Context::new(mdsvexrs::MdsvexrsOptions { layout: args.layout, path: args.path });
+    let mut ctx = Context::new(mdsvexrs::MdsvexrsOptions {
+        layout: args.layout,
+        // path: args.path,
+    });
 
     let mut input = String::new();
     stdin().read_to_string(&mut input).unwrap();
