@@ -1,0 +1,15 @@
+{
+  "name": "highlighter",
+  "version": "1.0.0",
+  "description": "",
+  "public": false,
+  "main": "index.js",
+  "type": "module",
+  "scripts": {},
+  "dependencies": {
+    "@shikijs/transformers": "^1.22.2",
+    "shiki": "^1.24.0"
+  },
+  "keywords": [],
+  "author": "Daniel Bulant"
+}
