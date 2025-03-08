@@ -1,5 +1,5 @@
 [package]
-name = "markdown"
+name = "mdsvexrs"
 version = "0.1.0"
 edition = "2021"
 
@@ -11,4 +11,4 @@ serde_yaml = "0.9.34"
 serde = { version = "1.0.215", features = ["derive"] }
 regex = "1.11.1"
 clap = { version = "4.5.21", features = ["derive"] }
-syntext = "5.0"
+syntect = "5.0"
