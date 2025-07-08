@@ -32,6 +32,13 @@ impl ToHtmlResult {
         Self { html, svelte }
     }
 
+    fn from_wrapped(html: (String, bool), svelte: bool) -> Self {
+        Self {
+            html: html.0,
+            svelte: html.1 || svelte,
+        }
+    }
+
     fn empty() -> Self {
         Self::new("".to_string(), false)
     }
@@ -71,8 +78,8 @@ impl ToHtml for Root {
 impl ToHtml for Blockquote {
     fn to_html(&self, ctx: &mut Context) -> ToHtmlResult {
         let children = self.children.to_html(ctx);
-        ToHtmlResult::new(
-            format!("<blockquote>{}</blockquote>", children.html),
+        ToHtmlResult::from_wrapped(
+            ctx.wrap_in_tag("blockquote", "", children.html),
             children.svelte,
         )
     }
@@ -102,8 +109,8 @@ impl ToHtml for List {
             false => "ul",
         };
         let children = self.children.to_html(ctx);
-        ToHtmlResult::new(
-            format!("<{}>{}</{}>", litype, children.html, litype),
+        ToHtmlResult::from_wrapped(
+            ctx.wrap_in_tag(litype, "", children.html),
             children.svelte,
         )
     }
@@ -133,8 +140,9 @@ impl ToHtml for Yaml {
 }
 
 impl ToHtml for Break {
-    fn to_html(&self, _ctx: &mut Context) -> ToHtmlResult {
-        ToHtmlResult::new("<br>".to_string(), false)
+    fn to_html(&self, ctx: &mut Context) -> ToHtmlResult {
+        let (tag, changed) = ctx.resolve_tag("br");
+        ToHtmlResult::new(format!("<{tag} />"), changed)
     }
 }
 
@@ -162,9 +170,9 @@ impl ToHtml for InlineCode {
                 meta: None,
             })
         } else {
-            format!("<code>{}</code>", html_encode(&self.value))
+            ctx.wrap_in_tag("code", "", html_encode(&self.value))
         };
-        ToHtmlResult::new(output, false)
+        ToHtmlResult::from_wrapped(output, false)
     }
 }
 
@@ -183,7 +191,7 @@ impl ToHtml for Delete {
 impl ToHtml for Emphasis {
     fn to_html(&self, ctx: &mut Context) -> ToHtmlResult {
         let children = self.children.to_html(ctx);
-        ToHtmlResult::new(format!("<em>{}</em>", children.html), children.svelte)
+        ToHtmlResult::from_wrapped(ctx.wrap_in_tag("em", "", children.html), children.svelte)
     }
 }
 
@@ -212,7 +220,7 @@ impl ToHtml for Html {
 }
 
 impl ToHtml for Image {
-    fn to_html(&self, _ctx: &mut Context) -> ToHtmlResult {
+    fn to_html(&self, ctx: &mut Context) -> ToHtmlResult {
         let alt = &self.alt;
         let title = self
             .title
@@ -220,9 +228,10 @@ impl ToHtml for Image {
             .map(|t| format!(" title=\"{}\"", t))
             .unwrap_or_default();
         let url = &self.url;
+        let (tag, changed) = ctx.resolve_tag("img");
         ToHtmlResult::new(
-            format!("<img src=\"{}\" alt=\"{}\"{}>", url, alt, title),
-            false,
+            format!("<{tag} src=\"{url}\" alt=\"{alt}\"{title}>"),
+            changed,
         )
     }
 }
@@ -247,8 +256,8 @@ impl ToHtml for Link {
             .as_ref()
             .map(|t| format!(" title=\"{}\"", t))
             .unwrap_or_default();
-        ToHtmlResult::new(
-            format!("<a href=\"{}\"{}>{}</a>", self.url, title, children.html),
+        ToHtmlResult::from_wrapped(
+            ctx.wrap_in_tag("a", &format!("href=\"{}\"{}", self.url, title), children.html),
             children.svelte,
         )
     }
@@ -263,8 +272,8 @@ impl ToHtml for LinkReference {
 impl ToHtml for Strong {
     fn to_html(&self, ctx: &mut Context) -> ToHtmlResult {
         let children = self.children.to_html(ctx);
-        ToHtmlResult::new(
-            format!("<strong>{}</strong>", children.html),
+        ToHtmlResult::from_wrapped(
+            ctx.wrap_in_tag("strong", "", children.html),
             children.svelte,
         )
     }
@@ -288,9 +297,9 @@ impl ToHtml for Code {
                 meta: self.meta.clone(),
             })
         } else {
-            format!("<pre><code>{}</code></pre>", html_encode(&self.value))
+            ctx.wrap_in_tag("pre", "", ctx.wrap_in_tag("code", "", html_encode(&self.value)))
         };
-        ToHtmlResult::new(highlighted, false)
+        ToHtmlResult::from_wrapped(highlighted, false)
     }
 }
 
@@ -335,12 +344,13 @@ impl ToHtml for Heading {
             id: slug.clone(),
             pos: self.position.clone(),
         });
+        let (tag, changed) = ctx.resolve_tag(&format!("h{}", self.depth));
         ToHtmlResult::new(
             format!(
-                "\n<h{} id=\"{}\">{}</h{}>\n",
-                self.depth, slug, children.html, self.depth
+                "\n<{tag} id=\"{slug}\">{}</{tag}>\n",
+                children.html
             ),
-            children.svelte,
+            children.svelte || changed,
         )
     }
 }
@@ -348,34 +358,35 @@ impl ToHtml for Heading {
 impl ToHtml for Table {
     fn to_html(&self, ctx: &mut Context) -> ToHtmlResult {
         let children = self.children.to_html(ctx);
-        ToHtmlResult::new(format!("<table>{}</table>", children.html), children.svelte)
+        ToHtmlResult::from_wrapped(ctx.wrap_in_tag("table", "", children.html), children.svelte)
     }
 }
 
 impl ToHtml for ThematicBreak {
-    fn to_html(&self, _ctx: &mut Context) -> ToHtmlResult {
-        ToHtmlResult::new("\n<hr>\n".to_string(), false)
+    fn to_html(&self, ctx: &mut Context) -> ToHtmlResult {
+        let (tag, changed) = ctx.resolve_tag("hr");
+        ToHtmlResult::new(format!("\n<{tag}>\n"), changed)
     }
 }
 
 impl ToHtml for TableRow {
     fn to_html(&self, ctx: &mut Context) -> ToHtmlResult {
         let children = self.children.to_html(ctx);
-        ToHtmlResult::new(format!("<tr>{}</tr>", children.html), children.svelte)
+        ToHtmlResult::from_wrapped(ctx.wrap_in_tag("tr", "", children.html), children.svelte)
     }
 }
 
 impl ToHtml for TableCell {
     fn to_html(&self, ctx: &mut Context) -> ToHtmlResult {
         let children = self.children.to_html(ctx);
-        ToHtmlResult::new(format!("<td>{}</td>", children.html), children.svelte)
+        ToHtmlResult::from_wrapped(ctx.wrap_in_tag("td", "", children.html), children.svelte)
     }
 }
 
 impl ToHtml for ListItem {
     fn to_html(&self, ctx: &mut Context) -> ToHtmlResult {
         let children = self.children.to_html(ctx);
-        ToHtmlResult::new(format!("<li>{}</li>", children.html), children.svelte)
+        ToHtmlResult::from_wrapped(ctx.wrap_in_tag("li", "", children.html), children.svelte)
     }
 }
 
@@ -388,7 +399,7 @@ impl ToHtml for Definition {
 impl ToHtml for Paragraph {
     fn to_html(&self, ctx: &mut Context) -> ToHtmlResult {
         let children = self.children.to_html(ctx);
-        ToHtmlResult::new(format!("<p>{}</p>", children.html), children.svelte)
+        ToHtmlResult::from_wrapped(ctx.wrap_in_tag("p", "", children.html), children.svelte)
     }
 }
 
@@ -557,6 +568,7 @@ struct HighlightRequest {
 
 pub struct MdsvexrsOptions {
     pub layout: String,
+    pub custom_tags: Vec<String>,
     // pub path: String,
 }
 
@@ -583,7 +595,7 @@ impl Context {
         }
     }
 
-    fn highlight(&mut self, code: HighlightRequest) -> String {
+    fn highlight(&mut self, code: HighlightRequest) -> (String, bool) {
         let theme = &self.theme_set.themes["base16-ocean.dark"];
         // #[cfg(not(target_arch = "wasm32"))]
         // let start = Instant::now();
@@ -593,36 +605,40 @@ impl Context {
             if let Some(default) = &self.default_lang {
                 lang = default;
             } else {
-                return format!("<pre><code>{}</code></pre>", html_encode(&code.code));
+                return self.wrap_in_tag("pre", "", self.wrap_in_tag("code", "", html_encode(&code.code)));
             }
         }
         let syntax = self.syntax_set.find_syntax_by_token(lang);
         let syntax = match syntax {
             Some(t) => t,
             None => {
-                return format!("<pre><code lang=\"{}\">{}</code></pre>", html_encode(lang), html_encode(&code.code));
+                return self.wrap_in_tag("pre", "", self.wrap_in_tag("code", &format!(" lang=\"{}\"", html_encode(lang)), html_encode(&code.code)));
             }
         };
         let mut highlighter = HighlightLines::new(syntax, theme);
 
         let mut string = String::new();
 
+        let (code_tag, code_changed) = self.resolve_tag("code");
+        let (pre_tag, pre_changed) = self.resolve_tag("pre");
+
         match code.inline {
             true => {
                 let regions = highlighter
                     .highlight_line(&code.code, &self.syntax_set)
                     .unwrap();
-                string += &format!("<code lang=\"{}\">", html_encode(lang));
+                string += &format!("<{code_tag} lang=\"{}\">", html_encode(lang));
                 append_highlighted_html_for_styled_line(
                     &regions[..],
                     IncludeBackground::No,
                     &mut string,
                 )
                 .unwrap();
-                string += "</code>";
+                string += &format!("</{code_tag}>");
+                (string, code_changed)
             }
             false => {
-                string += &format!("<pre><code lang=\"{}\">", html_encode(lang));
+                string += &format!("<{pre_tag}><{code_tag} lang=\"{}\">", html_encode(lang));
                 for line in LinesWithEndings::from(&code.code) {
                     let regions = highlighter.highlight_line(line, &self.syntax_set).unwrap();
                     append_highlighted_html_for_styled_line(
@@ -632,14 +648,24 @@ impl Context {
                     )
                     .unwrap();
                 }
-                string += "</code></pre>\n";
+                string += &format!("</{code_tag}></{pre_tag}>\n");
+                (string, code_changed || pre_changed)
             }
-        };
+        }
+    }
 
-        // #[cfg(not(target_arch = "wasm32"))] {
-        //     self.highlight_times += start.elapsed();
-        // }
-        string
+    fn resolve_tag(&self, tag: &str) -> (String, bool) {
+        if self.options.custom_tags.contains(&tag.to_string()) {
+            (tag.to_ascii_uppercase(), true)
+        } else {
+            (tag.to_string(), false)
+        }
+    }
+
+    fn wrap_in_tag(&self, tag: &str, opts: &str, content: impl Into<Wrappable>) -> (String, bool) {
+        let content: Wrappable = content.into();
+        let (tag, changed) = self.resolve_tag(tag);
+        (format!("<{tag} {opts}>{}</{tag}>", content.html), changed || content.svelte)
     }
 
     fn resolve_layout(&self) -> &str {
@@ -692,7 +718,15 @@ impl Context {
             ) + 1;
             let mut script = value[..end].to_string();
             let layout = self.resolve_layout();
-            script += format!("import MDXLayout from \"{}\";", layout).as_str();
+            if self.options.custom_tags.is_empty() {
+                script += format!("import MDXLayout from \"{}\";", layout).as_str();
+            } else {
+                let custom_tags = self.options.custom_tags
+                    .iter()
+                    .map(|tag| format!("{} as {}", tag, tag.to_ascii_uppercase()))
+                    .join(", ");
+                script += format!("import MDXLayout, {{ {} }} from \"{}\";", custom_tags, layout).as_str();
+            }
             script += &value[end..];
             script
         };
@@ -719,6 +753,38 @@ impl Context {
     // #[cfg(target_arch = "wasm32")]
     pub fn print_timings(&self) {
         println!("wasm timings are not available");
+    }
+}
+
+struct Wrappable {
+    html: String,
+    svelte: bool,
+}
+
+impl From<ToHtmlResult> for Wrappable {
+    fn from(value: ToHtmlResult) -> Self {
+        Self {
+            html: value.html,
+            svelte: value.svelte,
+        }
+    }
+}
+
+impl From<String> for Wrappable {
+    fn from(value: String) -> Self {
+        Self {
+            html: value,
+            svelte: false,
+        }
+    }
+}
+
+impl From<(String, bool)> for Wrappable {
+    fn from(value: (String, bool)) -> Self {
+        Self {
+            html: value.0,
+            svelte: value.1,
+        }
     }
 }
 

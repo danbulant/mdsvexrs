@@ -1,6 +1,7 @@
 
 export interface Options {
     layout: string;
+    customTags?: string[];
 }
 
 interface Plugin {

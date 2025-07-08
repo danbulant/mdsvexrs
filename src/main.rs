@@ -8,6 +8,8 @@ use mdsvexrs::Context;
 struct Args {
     #[arg(short, long)]
     layout: String,
+    #[arg(short, long, default_value = "")]
+    custom_tags: Vec<String>,
     // #[arg(short, long)]
     // path: String,
     #[arg(long)]
@@ -20,6 +22,7 @@ fn main() {
 
     let mut ctx = Context::new(mdsvexrs::MdsvexrsOptions {
         layout: args.layout,
+        custom_tags: args.custom_tags,
         // path: args.path,
     });
 
