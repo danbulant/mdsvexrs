@@ -1,6 +1,6 @@
 {
   "name": "mdsvexrs",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Faster Markdown to Svelte with inline code highlighting",
   "main": "index.js",
   "types": "index.d.ts",
@@ -8,7 +8,7 @@
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "dependencies": {
-    "mdsvexrs-wasm": "file:../wasm/pkg"
+    "mdsvexrs-wasm": "mdsvexrs-wasm"
   },
   "keywords": [],
   "author": "",
