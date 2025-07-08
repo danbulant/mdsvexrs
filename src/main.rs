@@ -1,9 +1,10 @@
 use std::io::{stdin, Read};
 
-use clap::Parser;
+use clap::{Parser, Subcommand};
 use mdsvexrs::Context;
 
 #[derive(Parser)]
+#[command(version, about, long_about = None)]
 struct Args {
     #[arg(short, long)]
     layout: String,
@@ -13,8 +14,10 @@ struct Args {
     timings: bool,
 }
 
+
 fn main() {
     let args = Args::parse();
+
     let mut ctx = Context::new(mdsvexrs::MdsvexrsOptions {
         layout: args.layout,
         // path: args.path,

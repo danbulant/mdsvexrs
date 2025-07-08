@@ -1,5 +1,5 @@
 
-interface Options {
+export interface Options {
     layout: string;
 }
 
@@ -8,4 +8,4 @@ interface Plugin {
     markup: (opts: { content: string, filename: string }) => { code: string } | undefined;
 }
 
-export function mdsvexrs(options): Plugin;
+export function mdsvexrs(options: Options): Plugin;

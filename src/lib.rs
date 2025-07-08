@@ -1,6 +1,6 @@
 use std::{
     sync::LazyLock,
-    time::{Duration, Instant},
+    time::{Duration/*, Instant*/},
 };
 
 use itertools::Itertools;
@@ -18,11 +18,7 @@ use markdown::{
 use serde::Serialize;
 use serde_json::Value;
 use syntect::{
-    easy::HighlightLines,
-    highlighting::ThemeSet,
-    html::{append_highlighted_html_for_styled_line, IncludeBackground},
-    parsing::SyntaxSet,
-    util::LinesWithEndings,
+    dumps::from_uncompressed_data, easy::HighlightLines, highlighting::ThemeSet, html::{append_highlighted_html_for_styled_line, IncludeBackground}, parsing::{SyntaxDefinition, SyntaxSet}, util::LinesWithEndings
 };
 
 #[derive(Debug)]
@@ -174,7 +170,7 @@ impl ToHtml for InlineCode {
 
 impl ToHtml for InlineMath {
     fn to_html(&self, _ctx: &mut Context) -> ToHtmlResult {
-        todo!()
+        ToHtmlResult::new(self.value.clone(), false)
     }
 }
 
@@ -542,13 +538,13 @@ pub struct Context {
     pub options: MdsvexrsOptions,
     pub titles: Vec<Title>,
 
-    syntax_set: SyntaxSet,
-    theme_set: ThemeSet,
+    pub syntax_set: SyntaxSet,
+    pub theme_set: ThemeSet,
 
-    pub(crate) highlight_times: Duration,
-    pub(crate) parse_time: Duration,
-    pub(crate) visit_time: Duration,
-    pub(crate) convert_time: Duration,
+    // pub(crate) highlight_times: Duration,
+    // pub(crate) parse_time: Duration,
+    // pub(crate) visit_time: Duration,
+    // pub(crate) convert_time: Duration,
 }
 
 #[derive(Serialize)]
@@ -567,7 +563,7 @@ pub struct MdsvexrsOptions {
 impl Context {
     pub fn new(options: MdsvexrsOptions) -> Self {
 
-        let syntax_set = SyntaxSet::load_defaults_newlines();
+        let syntax_set: SyntaxSet = from_uncompressed_data(include_bytes!("../target/syntax_cache.packdump")).unwrap();
         let theme_set = ThemeSet::load_defaults();
 
         Context {
@@ -580,16 +576,17 @@ impl Context {
             default_lang: None,
             script: None,
             options,
-            highlight_times: Duration::ZERO,
-            parse_time: Duration::ZERO,
-            visit_time: Duration::ZERO,
-            convert_time: Duration::ZERO,
+            // highlight_times: Duration::ZERO,
+            // parse_time: Duration::ZERO,
+            // visit_time: Duration::ZERO,
+            // convert_time: Duration::ZERO,
         }
     }
 
     fn highlight(&mut self, code: HighlightRequest) -> String {
-        let theme = &self.theme_set.themes["InspiredGitHub"];
-        let start = Instant::now();
+        let theme = &self.theme_set.themes["base16-ocean.dark"];
+        // #[cfg(not(target_arch = "wasm32"))]
+        // let start = Instant::now();
 
         let mut lang = &code.lang;
         if lang.is_empty() {
@@ -603,7 +600,7 @@ impl Context {
         let syntax = match syntax {
             Some(t) => t,
             None => {
-                return format!("<pre><code>{}</code></pre>", html_encode(&code.code));
+                return format!("<pre><code lang=\"{}\">{}</code></pre>", html_encode(lang), html_encode(&code.code));
             }
         };
         let mut highlighter = HighlightLines::new(syntax, theme);
@@ -615,7 +612,7 @@ impl Context {
                 let regions = highlighter
                     .highlight_line(&code.code, &self.syntax_set)
                     .unwrap();
-                string += "<code>";
+                string += &format!("<code lang=\"{}\">", html_encode(lang));
                 append_highlighted_html_for_styled_line(
                     &regions[..],
                     IncludeBackground::No,
@@ -625,7 +622,7 @@ impl Context {
                 string += "</code>";
             }
             false => {
-                string += "<pre>\n<code>";
+                string += &format!("<pre><code lang=\"{}\">", html_encode(lang));
                 for line in LinesWithEndings::from(&code.code) {
                     let regions = highlighter.highlight_line(line, &self.syntax_set).unwrap();
                     append_highlighted_html_for_styled_line(
@@ -639,7 +636,9 @@ impl Context {
             }
         };
 
-        self.highlight_times += start.elapsed();
+        // #[cfg(not(target_arch = "wasm32"))] {
+        //     self.highlight_times += start.elapsed();
+        // }
         string
     }
 
@@ -648,12 +647,18 @@ impl Context {
     }
 
     pub fn convert(&mut self, input: &str) -> String {
-        let start = Instant::now();
+        // #[cfg(not(target_arch = "wasm32"))]
+        // let start = Instant::now();
         let ast = markdown::to_mdast(input, &DEFAULT_MD_OPTIONS).unwrap();
-        self.parse_time = start.elapsed();
-        let start = Instant::now();
+        // #[cfg(not(target_arch = "wasm32"))] {
+        //     self.parse_time = start.elapsed();
+        // }
+        // #[cfg(not(target_arch = "wasm32"))]
+        // let start = Instant::now();
         ast.visit(self);
-        self.visit_time = start.elapsed();
+        // #[cfg(not(target_arch = "wasm32"))] {
+        //     self.visit_time = start.elapsed();
+        // }
 
         if let Some(yaml) = &self.yaml {
             if let Some(val) = yaml.get("defaultLang") {
@@ -661,10 +666,13 @@ impl Context {
             }
         }
 
-        let start = Instant::now();
+        // #[cfg(not(target_arch = "wasm32"))]
+        // let start = Instant::now();
         let res = ast.to_html(self);
         let html = finish(res);
-        self.convert_time = start.elapsed();
+        // #[cfg(not(target_arch = "wasm32"))] {
+        //     self.convert_time = start.elapsed();
+        // }
 
         if let Some(yaml) = &mut self.yaml {
             yaml.insert(
@@ -695,17 +703,22 @@ impl Context {
         format!(
             "<script context=\"module\">export const metadata = {frontmatter}</script>
 {script}
-<MDXLayout {{...metadata}}>
+<MDXLayout {{...metadata}} {{...$$restProps}}>
 {html}
 </MDXLayout>"
         )
     }
 
+    // #[cfg(not(target_arch = "wasm32"))]
+    // pub fn print_timings(&self) {
+    //     println!("Parse: {:?}", self.parse_time);
+    //     println!("Visit: {:?}", self.visit_time);
+    //     println!("Convert: {:?}", self.convert_time);
+    //     println!("Highlight: {:?}", self.highlight_times);
+    // }
+    // #[cfg(target_arch = "wasm32")]
     pub fn print_timings(&self) {
-        println!("Parse: {:?}", self.parse_time);
-        println!("Visit: {:?}", self.visit_time);
-        println!("Convert: {:?}", self.convert_time);
-        println!("Highlight: {:?}", self.highlight_times);
+        println!("wasm timings are not available");
     }
 }
 

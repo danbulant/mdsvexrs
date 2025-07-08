@@ -1,4 +1,4 @@
-import { render } from "mdsvexrs-wasm"
+import * as wasm from "mdsvexrs-wasm"
 
 export function mdsvexrs(options) {
     return {
@@ -7,7 +7,7 @@ export function mdsvexrs(options) {
             if(!filename || !filename.endsWith('.md')) return
 
             return {
-                code: render(content, options)
+                code: wasm.render(content, options.layout)
             }
         }
     }

@@ -6,7 +6,7 @@ edition = "2021"
 [features]
 fancy = ["syntect/default-fancy"]
 onig = ["syntect/default-onig"]
-default = ["onig"]
+default = ["onig", "fancy"]
 
 [dependencies]
 markdown = { version = "1.0.0-alpha.21", features = ["serde"]}
@@ -17,3 +17,7 @@ serde = { version = "1.0.215", features = ["derive"] }
 regex = "1.11.1"
 clap = { version = "4.5.21", features = ["derive"] }
 syntect = { version = "5.0", default-features = false }
+file-exists-macro = "0.1"
+
+[build-dependencies]
+syntect = { version = "5.0", default-features = false, features = ["dump-create"] }

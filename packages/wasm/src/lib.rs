@@ -5,30 +5,36 @@ use mdsvexrs::Context;
 #[global_allocator]
 static ALLOC: wee_alloc::WeeAlloc = wee_alloc::WeeAlloc::INIT;
 
-#[wasm_bindgen]
-pub struct Options {
-    layout: String,
-    // path: String,
-}
+// #[wasm_bindgen]
+// pub struct Options {
+//     layout: String,
+//     // path: String,
+// }
+
+// #[wasm_bindgen]
+// impl Options {
+//     #[wasm_bindgen(getter)]
+//     pub fn layout(&self) -> String {
+//         self.layout.clone()
+//     }
+
+//     #[wasm_bindgen(setter)]
+//     pub fn set_layout(&mut self, layout: String) {
+//         self.layout = layout;
+//     }
+// }
+
+// #[wasm_bindgen]
+// pub fn get_default_options() -> Options {
+//     Options {
+//         layout: String::new(),
+//     }
+// }
 
 #[wasm_bindgen]
-impl Options {
-    #[wasm_bindgen(getter)]
-    pub fn layout(&self) -> String {
-        self.layout.clone()
-    }
-
-    #[wasm_bindgen(setter)]
-    pub fn set_layout(&mut self, layout: String) {
-        self.layout = layout;
-    }
-}
-
-
-#[wasm_bindgen]
-pub fn render(contents: &str, options: Options) -> String {
+pub fn render(contents: &str, layout: &str) -> String {
     Context::new(mdsvexrs::MdsvexrsOptions {
-        layout: options.layout.to_string(),
+        layout: layout.to_string(),
         // path: options.path,
     })
     .convert(contents)
