@@ -1,7 +1,7 @@
 {
   "name": "mdsvexrs",
   "version": "0.1.0",
-  "description": "",
+  "description": "Faster Markdown to Svelte with inline code highlighting",
   "main": "index.js",
   "types": "index.d.ts",
   "scripts": {
